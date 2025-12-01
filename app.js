@@ -5,6 +5,9 @@ const usernameInput = document.querySelector('#username');
 const statusEl = document.querySelector('#status');
 const resultsEl = document.querySelector('#results');
 
+// Chart instances
+let activityChart = null;
+
 function setStatus(message, tone = 'info') {
   statusEl.textContent = message;
   statusEl.dataset.tone = tone;
@@ -25,6 +28,8 @@ function formatDuration(totalSeconds) {
   const display = Number.isInteger(roundedHours) ? roundedHours.toString() : roundedHours.toFixed(1);
   return pluralize(Number(display), 'hour');
 }
+
+
 
 function escapeCsvValue(value) {
   if (value == null) {
@@ -80,6 +85,54 @@ function exportCsv(summaries, totals, username) {
   URL.revokeObjectURL(url);
 }
 
+function renderCharts(summaries, totals) {
+  // Destroy existing charts if they exist
+  if (activityChart) activityChart.destroy();
+
+  const ctxActivity = document.getElementById('activityChart').getContext('2d');
+
+  // Prepare data for Activity Chart (Last 12 months)
+  const recentSummaries = summaries.slice(0, 12).reverse();
+  const labels = recentSummaries.map(s => s.archiveMonth);
+  const dataGames = recentSummaries.map(s => s.gameCount);
+
+  // Activity Chart
+  activityChart = new Chart(ctxActivity, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Games Played',
+        data: dataGames,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Games Played (Last 12 Months)', color: '#fff' }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.1)' },
+          ticks: {
+            color: '#ccc',
+            font: {
+              size: 14
+            }
+          }
+        },
+        x: { grid: { display: false }, ticks: { color: '#ccc' } }
+      }
+    }
+  });
+}
+
 function renderSummaries(summaries, username) {
   if (!summaries.length) {
     resultsEl.innerHTML = '<p>No recent archives were found.</p>';
@@ -99,6 +152,8 @@ function renderSummaries(summaries, username) {
     { totalSeconds: 0, gameCount: 0, wins: 0, losses: 0, draws: 0 },
   );
   const totalRecord = `${totals.wins}/${totals.losses}/${totals.draws}`;
+
+
   const rows = sortedSummaries
     .map(
       (summary) => {
@@ -129,10 +184,17 @@ function renderSummaries(summaries, username) {
         <span class="totals__value">${totals.gameCount}</span>
       </div>
       <div class="totals__item">
-        <span class="totals__label">All Time Record (W/L/D)</span>
+        <span class="totals__label">All Time Record</span>
         <span class="totals__value">${totalRecord}</span>
       </div>
     </div>
+
+    <div class="charts-container">
+      <div class="chart-card">
+        <canvas id="activityChart"></canvas>
+      </div>
+    </div>
+
     <div class="table-wrapper">
       <div class="table-toolbar">
         <h2 class="table-toolbar__heading">Monthly Chess Stats</h2>
@@ -153,6 +215,9 @@ function renderSummaries(summaries, username) {
       </table>
     </div>
   `;
+
+  // Initialize charts after DOM update
+  renderCharts(sortedSummaries, totals);
 
   const exportButton = resultsEl.querySelector('[data-role="export-csv"]');
   if (exportButton) {
