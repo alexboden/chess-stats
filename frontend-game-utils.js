@@ -51,15 +51,15 @@ function secondsBetween(startSeconds, endSeconds) {
   }
   let diff = ((endSeconds - startSeconds) + (SECONDS_PER_DAY)) % SECONDS_PER_DAY;
   if (diff < 0) {
-	console.log('End time is before start time:', startSeconds, endSeconds);
-	throw new Error('End time is before start time');
+    console.log('End time is before start time:', startSeconds, endSeconds);
+    throw new Error('End time is before start time');
   }
   return diff;
 }
 
 function getPlayerPerspectiveResult(game, username) {
   if (!username || !game?.pgn) {
-	// throw new Error('Username and game PGN are required to determine result');
+    // throw new Error('Username and game PGN are required to determine result');
     return null;
   }
 
@@ -73,7 +73,7 @@ function getPlayerPerspectiveResult(game, username) {
   const isPlayerWhite = whiteUsername === playerUsername;
   const isPlayerBlack = blackUsername === playerUsername;
   if (!isPlayerWhite && !isPlayerBlack) {
-	// throw new Error('Player username does not match either side of the game');
+    // throw new Error('Player username does not match either side of the game');
     return null;
   }
 
@@ -147,8 +147,19 @@ export async function getMonthlySummaries(username) {
     return [];
   }
 
-  const summaries = await Promise.all(archiveUrls.map((url) => summarizeArchive(url, username)));
-  return summaries;
+  // Throttle requests to avoid rate limits
+  const CONCURRENCY_LIMIT = 5;
+  const results = [];
+
+  for (let i = 0; i < archiveUrls.length; i += CONCURRENCY_LIMIT) {
+    const chunk = archiveUrls.slice(i, i + CONCURRENCY_LIMIT);
+    const chunkResults = await Promise.all(
+      chunk.map((url) => summarizeArchive(url, username))
+    );
+    results.push(...chunkResults);
+  }
+
+  return results;
 }
 
 export async function getMostRecentGameSummary(username) {
