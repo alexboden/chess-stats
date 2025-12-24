@@ -4,7 +4,7 @@
     line-height: 1.5;
 
     /* Modern Palette */
-    --bg-gradient: linear-gradient(135deg, #1a1c2c 0%, #4a192c 100%);
+    --bg-gradient: #1a1c2c;
     --card-bg: rgba(255, 255, 255, 0.05);
     --card-border: rgba(255, 255, 255, 0.1);
     --text-primary: #ffffff;
