@@ -254,3 +254,27 @@ form.addEventListener('submit', async (event) => {
     form.querySelector('button').disabled = false;
   }
 });
+
+const magnusPrompt = document.querySelector('#magnus-prompt');
+
+function toggleMagnusPrompt() {
+  if (magnusPrompt) {
+    const hasText = usernameInput.value.trim().length > 0;
+    magnusPrompt.style.display = hasText ? 'none' : 'block';
+  }
+}
+
+// Initial check
+toggleMagnusPrompt();
+
+// Listen for input changes
+usernameInput.addEventListener('input', toggleMagnusPrompt);
+
+if (magnusPrompt) {
+  magnusPrompt.addEventListener('click', () => {
+    usernameInput.value = 'magnuscarlsen';
+    // Hide prompt immediately
+    toggleMagnusPrompt();
+    form.dispatchEvent(new Event('submit'));
+  });
+}

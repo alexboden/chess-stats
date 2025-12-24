@@ -20,8 +20,10 @@
     </header>
 
     <form id="lookup-form">
-      <input id="username" type="text" name="username" placeholder="Chess.com username" autocomplete="off" required />
-      <button type="submit">Fetch</button>
+      <div class="input-wrapper">
+        <input id="username" type="text" name="username" placeholder="Chess.com username" autocomplete="off" required />
+        <button type="button" id="magnus-prompt" class="magnus-prompt">Checkout Magnus ➜</button>
+      </div>
     </form>
 
     <div id="status"></div>

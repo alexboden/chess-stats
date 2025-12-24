@@ -84,20 +84,34 @@ form {
     max-width: 500px;
 }
 
-input[type='text'] {
+/* Input Wrapper acting as the fake input box */
+.input-wrapper {
     flex: 1;
+    display: flex;
+    align-items: center;
     border-radius: 12px;
     border: 1px solid var(--card-border);
-    padding: 0.8rem 1.2rem;
-    font-size: 1rem;
     background: rgba(0, 0, 0, 0.2);
-    color: white;
+    padding: 0.8rem 1.2rem;
     transition: border-color 0.2s;
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--accent);
+}
+
+input[type='text'] {
+    flex: 1;
+    border: none;
+    padding: 0;
+    font-size: 1rem;
+    background: transparent;
+    color: white;
 }
 
 input[type='text']:focus {
     outline: none;
-    border-color: var(--accent);
+    border: none;
 }
 
 button {
@@ -312,4 +326,23 @@ footer .repo-link:hover {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* Magnus Prompt */
+.magnus-prompt {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+    margin-left: 0.5rem;
+    opacity: 0.8;
+    white-space: nowrap;
+}
+
+.magnus-prompt:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
 }
