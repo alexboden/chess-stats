@@ -273,8 +273,12 @@ usernameInput.addEventListener('input', toggleMagnusPrompt);
 if (magnusPrompt) {
   magnusPrompt.addEventListener('click', () => {
     usernameInput.value = 'magnuscarlsen';
-    // Hide prompt immediately
-    toggleMagnusPrompt();
-    form.dispatchEvent(new Event('submit'));
+    usernameInput.focus();
+    // Use requestSubmit to trigger the submit event and validation
+    if (form.requestSubmit) {
+      form.requestSubmit();
+    } else {
+      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    }
   });
 }
