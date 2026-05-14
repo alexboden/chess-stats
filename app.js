@@ -1,4 +1,4 @@
-import { getMonthlySummaries } from './frontend-game-utils.js';
+// getMonthlySummaries is loaded from frontend-game-utils.js
 
 const form = document.querySelector('#lookup-form');
 const usernameInput = document.querySelector('#username');
@@ -104,8 +104,8 @@ function renderCharts(summaries, totals) {
       datasets: [{
         label: 'Games Played',
         data: dataGames,
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: '#00529b',
+        backgroundColor: 'rgba(0, 82, 155, 0.08)',
         fill: true,
         tension: 0.4
       }]
@@ -114,20 +114,20 @@ function renderCharts(summaries, totals) {
       responsive: true,
       plugins: {
         legend: { display: false },
-        title: { display: true, text: 'Games Played (Last 12 Months)', color: '#fff' }
+        title: { display: true, text: 'Games Played (Last 12 Months)', color: '#000' }
       },
       scales: {
         y: {
           beginAtZero: true,
-          grid: { color: 'rgba(255,255,255,0.1)' },
+          grid: { color: '#eee' },
           ticks: {
-            color: '#ccc',
+            color: '#555',
             font: {
               size: 14
             }
           }
         },
-        x: { grid: { display: false }, ticks: { color: '#ccc' } }
+        x: { grid: { display: false }, ticks: { color: '#555' } }
       }
     }
   });

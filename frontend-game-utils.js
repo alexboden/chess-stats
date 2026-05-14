@@ -140,7 +140,7 @@ async function summarizeArchive(archiveUrl, username) {
   };
 }
 
-export async function getMonthlySummaries(username) {
+async function getMonthlySummaries(username) {
   const archives = await fetchPlayerArchives(username);
   const archiveUrls = archives?.archives;
   if (!Array.isArray(archiveUrls) || archiveUrls.length === 0) {
@@ -162,7 +162,7 @@ export async function getMonthlySummaries(username) {
   return results;
 }
 
-export async function getMostRecentGameSummary(username) {
+async function getMostRecentGameSummary(username) {
   const summaries = await getMonthlySummaries(username);
   if (!summaries.length) {
     return null;
