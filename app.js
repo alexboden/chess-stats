@@ -201,7 +201,26 @@ function renderCombinedChart(summaries, mode, format) {
       },
       plugins: {
         legend: { display: true },
-        title: { display: true, text: `${formatLabel} — ${activityLabel} vs Rating (Last 12 Months)`, color: '#000' }
+        title: { display: true, text: `${formatLabel} — ${activityLabel} vs Rating (Last 12 Months)`, color: '#000' },
+        tooltip: {
+          callbacks: {
+            afterBody(tooltipItems) {
+              const idx = tooltipItems[0].dataIndex;
+              const summary = recentSummaries[idx];
+              const tc = summary.timeClasses?.[format];
+              if (!tc) return '';
+              const lines = [];
+              const wins = summary.wins ?? 0;
+              const losses = summary.losses ?? 0;
+              const draws = summary.draws ?? 0;
+              lines.push(`Record: ${wins}W / ${losses}L / ${draws}D`);
+              lines.push(`Time: ${formatDuration(tc.totalSeconds)}`);
+              lines.push(`Games (${formatLabel}): ${tc.gameCount}`);
+              if (tc.lastRating) lines.push(`Rating: ${tc.lastRating}`);
+              return lines;
+            }
+          }
+        }
       },
       scales: {
         y: {
