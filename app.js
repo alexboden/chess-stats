@@ -6,7 +6,8 @@ const statusEl = document.querySelector('#status');
 const resultsEl = document.querySelector('#results');
 
 // Chart instances
-let activityChart = null;
+let combinedChart = null;
+let currentSummaries = null;
 
 function setStatus(message, tone = 'info') {
   statusEl.textContent = message;
@@ -85,47 +86,139 @@ function exportCsv(summaries, totals, username) {
   URL.revokeObjectURL(url);
 }
 
-function renderCharts(summaries, totals) {
-  // Destroy existing charts if they exist
-  if (activityChart) activityChart.destroy();
+const TIME_CLASS_COLORS = {
+  bullet: { border: '#e53935', bg: 'rgba(229, 57, 53, 0.08)' },
+  blitz: { border: '#fb8c00', bg: 'rgba(251, 140, 0, 0.08)' },
+  rapid: { border: '#00529b', bg: 'rgba(0, 82, 155, 0.08)' },
+  daily: { border: '#43a047', bg: 'rgba(67, 160, 71, 0.08)' },
+};
 
-  const ctxActivity = document.getElementById('activityChart').getContext('2d');
+function getAvailableTimeClasses(summaries) {
+  const classes = new Set();
+  for (const s of summaries) {
+    if (s.timeClasses) {
+      for (const tc of Object.keys(s.timeClasses)) {
+        if (tc !== 'unknown') classes.add(tc);
+      }
+    }
+  }
+  return [...classes].sort();
+}
 
-  // Prepare data for Activity Chart (Last 12 months)
+function getMostPlayedTimeClass(summaries) {
+  const totals = {};
+  for (const s of summaries) {
+    if (s.timeClasses) {
+      for (const [tc, data] of Object.entries(s.timeClasses)) {
+        if (tc === 'unknown') continue;
+        totals[tc] = (totals[tc] || 0) + data.gameCount;
+      }
+    }
+  }
+  let best = null;
+  let bestCount = 0;
+  for (const [tc, count] of Object.entries(totals)) {
+    if (count > bestCount) {
+      best = tc;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+function renderCharts(summaries) {
+  currentSummaries = summaries;
+
+  // Populate format dropdown
+  const formatSelect = document.getElementById('chartFormat');
+  const availableClasses = getAvailableTimeClasses(summaries);
+  const mostPlayed = getMostPlayedTimeClass(summaries);
+  formatSelect.innerHTML = availableClasses.map(tc =>
+    `<option value="${tc}"${tc === mostPlayed ? ' selected' : ''}>${tc.charAt(0).toUpperCase() + tc.slice(1)}</option>`
+  ).join('');
+
+  const chartMode = document.getElementById('chartMode')?.value || 'games';
+  const format = formatSelect.value;
+  renderCombinedChart(summaries, chartMode, format);
+}
+
+function renderCombinedChart(summaries, mode, format) {
+  if (combinedChart) combinedChart.destroy();
+
+  const ctx = document.getElementById('activityChart').getContext('2d');
   const recentSummaries = summaries.slice(0, 12).reverse();
   const labels = recentSummaries.map(s => s.archiveMonth);
-  const dataGames = recentSummaries.map(s => s.gameCount);
+  const colors = TIME_CLASS_COLORS[format] || { border: '#888', bg: 'rgba(136,136,136,0.08)' };
 
-  // Activity Chart
-  activityChart = new Chart(ctxActivity, {
+  let activityData, activityLabel;
+
+  if (mode === 'games') {
+    activityData = recentSummaries.map(s => s.timeClasses?.[format]?.gameCount || 0);
+    activityLabel = 'Games Played';
+  } else {
+    activityData = recentSummaries.map(s => {
+      const hours = (s.timeClasses?.[format]?.totalSeconds || 0) / 3600;
+      return Math.round(hours * 10) / 10;
+    });
+    activityLabel = 'Hours Played';
+  }
+
+  const ratingData = recentSummaries.map(s => s.timeClasses?.[format]?.lastRating || null);
+  const formatLabel = format.charAt(0).toUpperCase() + format.slice(1);
+
+  combinedChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: labels,
-      datasets: [{
-        label: 'Games Played',
-        data: dataGames,
-        borderColor: '#00529b',
-        backgroundColor: 'rgba(0, 82, 155, 0.08)',
-        fill: true,
-        tension: 0.4
-      }]
+      labels,
+      datasets: [
+        {
+          label: activityLabel,
+          data: activityData,
+          borderColor: colors.border,
+          backgroundColor: colors.bg,
+          fill: true,
+          tension: 0.4,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Rating',
+          data: ratingData,
+          borderColor: '#333',
+          backgroundColor: 'rgba(0,0,0,0.05)',
+          borderDash: [5, 3],
+          fill: false,
+          tension: 0.4,
+          spanGaps: true,
+          yAxisID: 'y1'
+        }
+      ]
     },
     options: {
       responsive: true,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
       plugins: {
-        legend: { display: false },
-        title: { display: true, text: 'Games Played (Last 12 Months)', color: '#000' }
+        legend: { display: true },
+        title: { display: true, text: `${formatLabel} — ${activityLabel} vs Rating (Last 12 Months)`, color: '#000' }
       },
       scales: {
         y: {
+          type: 'linear',
+          position: 'left',
           beginAtZero: true,
           grid: { color: '#eee' },
-          ticks: {
-            color: '#555',
-            font: {
-              size: 14
-            }
-          }
+          ticks: { color: colors.border, font: { size: 13 } },
+          title: { display: true, text: activityLabel, color: colors.border }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: false,
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#333', font: { size: 13 } },
+          title: { display: true, text: 'Rating', color: '#333' }
         },
         x: { grid: { display: false }, ticks: { color: '#555' } }
       }
@@ -191,6 +284,13 @@ function renderSummaries(summaries, username) {
 
     <div class="charts-container">
       <div class="chart-card">
+        <div class="chart-toolbar">
+          <select id="chartMode">
+            <option value="games">Games Played</option>
+            <option value="time">Time Played</option>
+          </select>
+          <select id="chartFormat"></select>
+        </div>
         <canvas id="activityChart"></canvas>
       </div>
     </div>
@@ -217,11 +317,24 @@ function renderSummaries(summaries, username) {
   `;
 
   // Initialize charts after DOM update
-  renderCharts(sortedSummaries, totals);
+  renderCharts(sortedSummaries);
 
   const exportButton = resultsEl.querySelector('[data-role="export-csv"]');
   if (exportButton) {
     exportButton.addEventListener('click', () => exportCsv(sortedSummaries, totals, username));
+  }
+
+  const chartModeSelect = document.getElementById('chartMode');
+  const chartFormatSelect = document.getElementById('chartFormat');
+  if (chartModeSelect) {
+    chartModeSelect.addEventListener('change', () => {
+      renderCombinedChart(currentSummaries, chartModeSelect.value, chartFormatSelect.value);
+    });
+  }
+  if (chartFormatSelect) {
+    chartFormatSelect.addEventListener('change', () => {
+      renderCombinedChart(currentSummaries, chartModeSelect.value, chartFormatSelect.value);
+    });
   }
 }
 

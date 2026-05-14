@@ -103,6 +103,9 @@ async function summarizeArchive(archiveUrl, username) {
   let losses = 0;
   let draws = 0;
 
+  // Per time-class breakdown
+  const timeClasses = {};
+
   for (const game of games) {
     if (!game?.pgn) {
       continue;
@@ -112,7 +115,9 @@ async function summarizeArchive(archiveUrl, username) {
     const endTime = getTagValue(pgn, 'EndTime');
     const startSeconds = parseTimeString(startTime);
     const endSeconds = parseTimeString(endTime);
-    totalSeconds += secondsBetween(startSeconds, endSeconds);
+    const gameDuration = secondsBetween(startSeconds, endSeconds);
+    totalSeconds += gameDuration;
+
     const result = getPlayerPerspectiveResult(game, username);
     if (result === 'win') {
       wins += 1;
@@ -121,6 +126,37 @@ async function summarizeArchive(archiveUrl, username) {
     } else if (result === 'loss') {
       losses += 1;
     }
+
+    // Track per time-class stats
+    const timeClass = game.time_class || 'unknown';
+    if (!timeClasses[timeClass]) {
+      timeClasses[timeClass] = { totalSeconds: 0, gameCount: 0, ratings: [] };
+    }
+    timeClasses[timeClass].totalSeconds += gameDuration;
+    timeClasses[timeClass].gameCount += 1;
+
+    // Get player's rating for this game
+    const playerUsername = username.toLowerCase();
+    const whiteUsername = (game.white?.username || '').toLowerCase();
+    const playerRating = whiteUsername === playerUsername
+      ? game.white?.rating
+      : game.black?.rating;
+    if (playerRating) {
+      timeClasses[timeClass].ratings.push(playerRating);
+    }
+  }
+
+  // Compute average rating per time class
+  const timeClassSummary = {};
+  for (const [tc, data] of Object.entries(timeClasses)) {
+    timeClassSummary[tc] = {
+      totalSeconds: data.totalSeconds,
+      gameCount: data.gameCount,
+      avgRating: data.ratings.length > 0
+        ? Math.round(data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length)
+        : null,
+      lastRating: data.ratings.length > 0 ? data.ratings[data.ratings.length - 1] : null,
+    };
   }
 
   const hours = Math.floor(totalSeconds / 3600);
@@ -137,6 +173,7 @@ async function summarizeArchive(archiveUrl, username) {
     wins,
     losses,
     draws,
+    timeClasses: timeClassSummary,
   };
 }
 
